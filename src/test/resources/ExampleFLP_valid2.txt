@@ -1,0 +1,35 @@
+package org.example;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FixedLengthParser {
+    public List<Record> parseFile(String filePath) throws IOException {
+        List<Record> records = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.length() < 21) {
+                    // Handle lines that are shorter than expected
+                    continue;
+                }
+
+                // Extract fields based on fixed positions
+                String balance = extractField(line, 1, 10).trim();
+                String date = extractField(line, 11, 21).trim();
+
+                // Create a new Record object
+                Record record = new Record(balance, date);
+                records.add(record);
+            }
+        }
+        return records;
+    }
+
+    private String extractField(String line, int start, int end) {
+        return line.substring(start - 1, end);
+    }
+}

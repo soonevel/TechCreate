@@ -68,7 +68,7 @@ public class Generator {
         return cols;
     }
 
-    public void writeRecordClass(List<Column> cols) throws IOException {
+    public void writeRecordClass(List<Column> cols, String dstPath) throws IOException {
         Velocity.init();
 
         // Create a context and add data
@@ -83,10 +83,10 @@ public class Generator {
         template.merge(context, writer);
 
         // Output the result
-        writeToJavaFile(writer.toString(), "src/main/java/org/example/Record.java");
+        writeToJavaFile(writer.toString(), dstPath);
     }
 
-    public void writeFLPClass(List<Column> cols) throws IOException {
+    public void writeFLPClass(List<Column> cols, String dstPath) throws IOException {
         Velocity.init();
 
         // Create a context and add data
@@ -103,7 +103,7 @@ public class Generator {
         template.merge(context, writer);
 
         // Output the result
-        writeToJavaFile(writer.toString(), "src/main/java/org/example/FixedLengthParser.java");
+        writeToJavaFile(writer.toString(), dstPath);
     }
 
     private void writeToJavaFile(String classString, String filePath) throws IOException {
@@ -116,8 +116,8 @@ public class Generator {
         try {
             List<Column> cols = generator.parseSchemaFile("src/main/resources/FT.schema");
 
-            generator.writeRecordClass(cols);
-            generator.writeFLPClass(cols);
+            generator.writeRecordClass(cols, "src/main/java/org/example/Record.java");
+            generator.writeFLPClass(cols, "src/main/java/org/example/FixedLengthParser.java");
         } catch (Exception e) {
             e.printStackTrace();
         }
