@@ -1,4 +1,3 @@
-question1.md
 ### Interview Question: Fixed-Length Column Parser
 
 You are given a file with fixed-length columns. The schema describing the fields in the file is as follows:

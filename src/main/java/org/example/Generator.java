@@ -3,20 +3,27 @@ package org.example;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 
-import java.io.StringWriter;
-
 public class Generator {
+    private static final Set<String> RESERVED_KEYWORDS = new HashSet<>(Arrays.asList(
+            "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
+            "const", "continue", "default", "do", "double", "else", "enum", "extends", "final",
+            "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int",
+            "interface", "long", "native", "new", "null", "package", "private", "protected", "public",
+            "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this",
+            "throw", "throws", "transient", "try", "void", "volatile", "while"));
+
     public List<Column> parseSchemaFile(String filePath) throws Exception {
         List<Column> cols = new ArrayList<>();
+        List<String> names = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
 
@@ -24,18 +31,35 @@ public class Generator {
                 var schema = line.split(" ", -1);
 
                 if (schema.length != 3) {
-                    throw new Exception("Schema is not properly defined.");
+                    throw new Exception("Schema is not properly defined. Please separate columnName startIndex endIndex with a space.");
                 }
 
                 //I wonder if need to check when the previous end index is larger than current start index?
                 int start = Integer.parseInt(schema[1]);
                 int end = Integer.parseInt(schema[2]);
 
-                if (start > end) {
-                    throw new Exception("Cannot parse when end index is greater than start index.");
+                if (start > end || start < 0 || end < 0) {
+                    throw new Exception("Invalid startIndex and/or endIndex.");
                 }
 
-                Column col = new Column(schema[0], start, end);
+                String name = schema[0];
+                //remove any special characters
+                name = name.replaceAll("[^a-zA-Z0-9_$]", "");
+                //remove any leading numbers
+                name = name.replaceAll("^\\d+", "");
+                if (name.isBlank()) {
+                    name = "unknown";
+                }
+                if (RESERVED_KEYWORDS.contains(name)) {
+                    throw new Exception("Column should not be a reserved keyword.");
+                }
+
+                if (names.contains(name)) {
+                    throw new Exception("Duplicated columns in schema are not allowed.");
+                }
+                names.add(name);
+
+                Column col = new Column(name, start, end);
                 cols.add(col);
 
                 System.out.println(col);
@@ -44,7 +68,7 @@ public class Generator {
         return cols;
     }
 
-    public String writeRecordClassInString(List<Column> cols) {
+    public void writeRecordClass(List<Column> cols) throws IOException {
         Velocity.init();
 
         // Create a context and add data
@@ -59,13 +83,10 @@ public class Generator {
         template.merge(context, writer);
 
         // Output the result
-        String recordString = writer.toString();
-        System.out.println(recordString);
-
-        return recordString;
+        writeToJavaFile(writer.toString(), "src/main/java/org/example/Record.java");
     }
 
-    public String writeFLPClassInString(List<Column> cols) {
+    public void writeFLPClass(List<Column> cols) throws IOException {
         Velocity.init();
 
         // Create a context and add data
@@ -82,13 +103,10 @@ public class Generator {
         template.merge(context, writer);
 
         // Output the result
-        String recordString = writer.toString();
-        System.out.println(recordString);
-
-        return recordString;
+        writeToJavaFile(writer.toString(), "src/main/java/org/example/FixedLengthParser.java");
     }
 
-    public void writeToJavaFile(String classString, String filePath) throws IOException {
+    private void writeToJavaFile(String classString, String filePath) throws IOException {
         var path = Paths.get(filePath);
         Files.write(path, classString.getBytes());
     }
@@ -98,11 +116,8 @@ public class Generator {
         try {
             List<Column> cols = generator.parseSchemaFile("src/main/resources/FT.schema");
 
-            String recordClass = generator.writeRecordClassInString(cols);
-            String FLPClass = generator.writeFLPClassInString(cols);
-
-            generator.writeToJavaFile(recordClass, "src/main/java/org/example/Record.java");
-            generator.writeToJavaFile(FLPClass, "src/main/java/org/example/FixedLengthParser.java");
+            generator.writeRecordClass(cols);
+            generator.writeFLPClass(cols);
         } catch (Exception e) {
             e.printStackTrace();
         }
