@@ -3,33 +3,22 @@ package org.example;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.MalformedInputException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-class Column {
-    public String column_name;
-    public int start_i;
-    public int end_i;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.Velocity;
 
-    @Override
-    public String toString() {
-        return "Column{" +
-                "column_name='" + column_name + '\'' +
-                ", start_i=" + start_i +
-                ", end_i=" + end_i +
-                '}';
-    }
-}
+import java.io.StringWriter;
 
 public class Generator {
     public List<Column> parseSchemaFile(String filePath) throws Exception {
         List<Column> cols = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
-            int i = -1;
 
             while ((line = reader.readLine()) != null) {
                 var schema = line.split(" ", -1);
@@ -38,12 +27,15 @@ public class Generator {
                     throw new Exception("Schema is not properly defined.");
                 }
 
-                Column col = new Column();
-                col.column_name = schema[0];
-                col.start_i = Integer.parseInt(schema[1]);
+                //I wonder if need to check when the previous end index is larger than current start index?
+                int start = Integer.parseInt(schema[1]);
+                int end = Integer.parseInt(schema[2]);
 
-                col.end_i = Integer.parseInt(schema[2]);
+                if (start > end) {
+                    throw new Exception("Cannot parse when end index is greater than start index.");
+                }
 
+                Column col = new Column(schema[0], start, end);
                 cols.add(col);
 
                 System.out.println(col);
@@ -52,69 +44,66 @@ public class Generator {
         return cols;
     }
 
-    public List<Record> parseFile(String filePath) throws IOException {
-        List<Record> records = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            List<Column> cols = new ArrayList<>();
-            while ((line = reader.readLine()) != null) {
-                var schema = line.split(" ", -1);
+    public String writeRecordClassInString(List<Column> cols) {
+        Velocity.init();
 
-                Column col = new Column();
-                col.column_name = schema[0];
-                col.start_i = Integer.valueOf(schema[1]);
-                col.end_i = Integer.valueOf(schema[2]);
+        // Create a context and add data
+        VelocityContext context = new VelocityContext();
+        context.put("cols", cols);
 
-                cols.add(col);
+        // Load the template
+        Template template = Velocity.getTemplate("src/main/resources/record.vm");
 
-                System.out.println(col);
-            }
-            String className = "Record";
+        // Merge the template with the context
+        StringWriter writer = new StringWriter();
+        template.merge(context, writer);
 
-            String classBlueprint = """
-                    public class
-                    """ + className + "{";
+        // Output the result
+        String recordString = writer.toString();
+        System.out.println(recordString);
 
-            for (var col : cols) {
-                classBlueprint += "private String " + col.column_name + ";";
-            }
-
-            classBlueprint += "public Record(";
-
-
-            for (var col : cols) {
-                classBlueprint += "String " + col.column_name + ", ";
-            }
-
-            classBlueprint = classBlueprint.substring(0, classBlueprint.length() - 2);
-
-
-            classBlueprint += ") {";
-
-            for (var col : cols) {
-                classBlueprint += "this." + col.column_name + " = " + col.column_name + ";";
-            }
-            classBlueprint += "}}";
-            System.out.println(classBlueprint);
-
-            var path = Paths.get("src/main/java/org/example/Record.java");
-            Files.write(path, classBlueprint.getBytes());
-        }
-        return records;
+        return recordString;
     }
 
-    private String extractField(String line, int start, int end) {
-        return line.substring(start - 1, end);
+    public String writeFLPClassInString(List<Column> cols) {
+        Velocity.init();
+
+        // Create a context and add data
+        VelocityContext context = new VelocityContext();
+        context.put("cols", cols);
+        int lineEnd = cols.getLast().getEndIndex();
+        context.put("lineEnd", lineEnd);
+
+        // Load the template
+        Template template = Velocity.getTemplate("src/main/resources/fixedLengthParser.vm");
+
+        // Merge the template with the context
+        StringWriter writer = new StringWriter();
+        template.merge(context, writer);
+
+        // Output the result
+        String recordString = writer.toString();
+        System.out.println(recordString);
+
+        return recordString;
+    }
+
+    public void writeToJavaFile(String classString, String filePath) throws IOException {
+        var path = Paths.get(filePath);
+        Files.write(path, classString.getBytes());
     }
 
     public static void main(String[] args) {
-        Generator parser = new Generator();
+        Generator generator = new Generator();
         try {
-            List<Record> records = parser.parseFile("schema/FT.schema");
-//            for (Record record : records) {
-//                System.out.println(record);
-//            }
-        } catch (IOException e) {
+            List<Column> cols = generator.parseSchemaFile("src/main/resources/FT.schema");
+
+            String recordClass = generator.writeRecordClassInString(cols);
+            String FLPClass = generator.writeFLPClassInString(cols);
+
+            generator.writeToJavaFile(recordClass, "src/main/java/org/example/Record.java");
+            generator.writeToJavaFile(FLPClass, "src/main/java/org/example/FixedLengthParser.java");
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
