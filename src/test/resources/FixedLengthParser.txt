@@ -12,14 +12,15 @@ public class FixedLengthParser {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.length() < 21) {
-                    // Handle lines that are shorter than expected
+                if (line.length() != 20) {
+                    // Handle lines with unexpected length
+                    System.out.println("Data '" + line + "' is not parsed as it does not follow the schema.");
                     continue;
                 }
 
                 // Extract fields based on fixed positions
                 String balance = extractField(line, 1, 10).trim();
-                String date = extractField(line, 11, 21).trim();
+                String date = extractField(line, 11, 20).trim();
 
                 // Create a new Record object
                 Record record = new Record(balance, date);

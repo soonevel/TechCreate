@@ -1,0 +1,4 @@
+John Doe            M  25
+Mary Angelina Joanna  F  17
+Jane Smith          F  30
+Peter              M  45

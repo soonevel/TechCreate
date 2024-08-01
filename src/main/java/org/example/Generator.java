@@ -106,6 +106,13 @@ public class Generator {
         writeToJavaFile(writer.toString(), dstPath);
     }
 
+    public void generateRecordAndFLP(String filePath) throws Exception {
+        List<Column> cols = parseSchemaFile(filePath);
+
+        writeRecordClass(cols, "src/main/java/org/example/Record.java");
+        writeFLPClass(cols, "src/main/java/org/example/FixedLengthParser.java");
+    }
+
     private void writeToJavaFile(String classString, String filePath) throws IOException {
         var path = Paths.get(filePath);
         Files.write(path, classString.getBytes());
@@ -114,10 +121,7 @@ public class Generator {
     public static void main(String[] args) {
         Generator generator = new Generator();
         try {
-            List<Column> cols = generator.parseSchemaFile("src/main/resources/FT.schema");
-
-            generator.writeRecordClass(cols, "src/main/java/org/example/Record.java");
-            generator.writeFLPClass(cols, "src/main/java/org/example/FixedLengthParser.java");
+            generator.generateRecordAndFLP("src/main/resources/FT.schema");
         } catch (Exception e) {
             e.printStackTrace();
         }

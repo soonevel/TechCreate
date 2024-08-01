@@ -12,8 +12,9 @@ public class FixedLengthParser {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.length() < $lineEnd) {
-                    // Handle lines that are shorter than expected
+                if (line.length() != $lineEnd) {
+                    // Handle lines with unexpected length
+                    System.out.println("Data '" + line + "' is not parsed as it does not follow the schema.");
                     continue;
                 }
 

@@ -27,7 +27,7 @@ class GeneratorTest {
         expectedValidCols1.add(col3);
 
         Column colA = new Column("balance", 1, 10);
-        Column colB = new Column("date", 11, 21);
+        Column colB = new Column("date", 11, 20);
         expectedValidCols2.add(colA);
         expectedValidCols2.add(colB);
     }
@@ -172,6 +172,30 @@ class GeneratorTest {
             fail("Exception should not have been thrown: " + e.getMessage());
         }
     }
+
+    @Test
+    void generateRecordAndFLP_valid1() {
+        try {
+            testedGenerator.generateRecordAndFLP("src/test/resources/valid1.schema");
+            assertTrue(areFilesEqual("src/test/resources/ExampleRecord_valid1.txt", "src/main/java/org/example/Record.java"));
+            assertTrue(areFilesEqual("src/test/resources/ExampleFLP_valid1.txt", "src/main/java/org/example/FixedLengthParser.java"));
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
+    }
+
+//    @Test
+//    void generateRecordAndFLP_valid2() {
+//        try {
+//            testedGenerator.generateRecordAndFLP("src/test/resources/valid2.schema");
+//            assertTrue(areFilesEqual("src/test/resources/ExampleRecord_valid2.txt", "src/main/java/org/example/Record.java"));
+//            assertTrue(areFilesEqual("src/test/resources/ExampleFLP_valid2.txt", "src/main/java/org/example/FixedLengthParser.java"));
+//        } catch (Exception e) {
+//            // Fail the test if an exception is thrown
+//            fail("Exception should not have been thrown: " + e.getMessage());
+//        }
+//    }
 
     private boolean areFilesEqual(String filePath1, String filePath2) throws IOException {
         var path1 = Paths.get(filePath1);
