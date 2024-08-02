@@ -87,6 +87,25 @@ class GeneratorTest {
     }
 
     @Test
+    void parseSchemaFile_unknown() {
+        try {
+            List<Column> actualCols = testedGenerator.parseSchemaFile("src/test/resources/unknown.schema");
+
+            List<Column> expectedCols = new ArrayList<>();
+            Column col1 = new Column("valid", 1, 2);
+            Column col2 = new Column("unknown", 3, 4);
+            expectedCols.add(col1);
+            expectedCols.add(col2);
+
+            assertEquals(expectedCols.toString(), actualCols.toString(), "parseSchemaFile_unknown should return the expected columns.");
+            assertEquals(2, actualCols.size(), "There should be 2 columns.");
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
     void parseSchemaFile_extraspace() {
         try {
             List<Column> actualCols = testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");

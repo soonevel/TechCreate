@@ -81,6 +81,8 @@ public class Generator {
                 name = name.replaceAll("^\\d+", "");
                 if (name.isBlank()) {
                     name = "unknown";
+                    System.out.println("WARNING: '" + postSchema.get(0) + "' is not a valid variable name in Java so it is renamed to 'unknown'. "
+                            + "Please provide a better columnName instead.");
                 }
                 if (RESERVED_KEYWORDS.contains(name)) {
                     throw new SchemaValidationException("Invalid columnName as '" + name + "'. "
