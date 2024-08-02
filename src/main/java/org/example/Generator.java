@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+import org.apache.commons.text.CaseUtils;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
@@ -28,21 +29,28 @@ public class Generator {
             String line;
 
             while ((line = reader.readLine()) != null) {
-                var schema = line.split(" ", -1);
+                var preSchema = line.splitWithDelimiters("\\s+\\d+", -1);
+                List<String> postSchema = new ArrayList<>();
+                for (String s : preSchema) {
+                    if (s.isBlank()) {
+                        continue;
+                    }
+                    postSchema.add(s.trim());
+                }
 
-                if (schema.length != 3) {
+                if (postSchema.size() != 3) {
                     throw new Exception("Schema is not properly defined. Please separate columnName startIndex endIndex with a space.");
                 }
 
                 //I wonder if need to check when the previous end index is larger than current start index?
-                int start = Integer.parseInt(schema[1]);
-                int end = Integer.parseInt(schema[2]);
+                int start = Integer.parseInt(postSchema.get(1));
+                int end = Integer.parseInt(postSchema.get(2));
 
                 if (start > end || start < 0 || end < 0) {
                     throw new Exception("Invalid startIndex and/or endIndex.");
                 }
 
-                String name = schema[0];
+                String name = CaseUtils.toCamelCase(postSchema.get(0), false, ' ');
                 //remove any special characters
                 name = name.replaceAll("[^a-zA-Z0-9_$]", "");
                 //remove any leading numbers

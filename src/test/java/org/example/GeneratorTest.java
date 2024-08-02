@@ -109,14 +109,35 @@ class GeneratorTest {
 
     @Test
     void parseSchemaFile_extraspace() {
-        // Test that the correct exception is thrown
-        Exception thrown = assertThrows(Exception.class, () -> {
-            testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
-        });
+        try {
+            List<Column> actualCols = testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
 
-        // Verify the exception message
-        assertEquals("Schema is not properly defined. Please separate columnName startIndex endIndex with a space.", thrown.getMessage());
+            List<Column> expectedCols = new ArrayList<>();
+            Column col1 = new Column("remainingBalance", 1, 5);
+            Column col2 = new Column("date", 6, 16);
+            Column col3 = new Column("dailyTransactionLimit", 17, 20);
+            expectedCols.add(col1);
+            expectedCols.add(col2);
+            expectedCols.add(col3);
+
+            assertEquals(expectedCols.toString(), actualCols.toString(), "parseSchemaFile_extraspace should return the expected columns.");
+            assertEquals(3, actualCols.size(), "There should be 3 columns.");
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
     }
+
+//    @Test
+//    void parseSchemaFile_extraspace() {
+//        // Test that the correct exception is thrown
+//        Exception thrown = assertThrows(Exception.class, () -> {
+//            testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
+//        });
+//
+//        // Verify the exception message
+//        assertEquals("Schema is not properly defined. Please separate columnName startIndex endIndex with a space.", thrown.getMessage());
+//    }
 
     @Test
     void parseSchemaFile_index() {
