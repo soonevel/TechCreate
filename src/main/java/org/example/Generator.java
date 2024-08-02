@@ -21,6 +21,25 @@ public class Generator {
             "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this",
             "throw", "throws", "transient", "try", "void", "volatile", "while"));
 
+    /**
+     * Parses a schema file and convert it into Column object(s).
+     * Each line in the schema file should have the format of "<columnName> <startIndex> <endIndex>" where:
+     * - columnName is a non-empty string
+     * - followed by a space
+     * - followed by startIndex which is a positive integer
+     * - followed by a space
+     * - followed by endIndex which is a positive integer > startIndex
+     * The columnName should be a valid variable name in Java and there should not be duplicated columnName in the schema file.
+     *
+     * An example of a valid schema file:
+     *  columnName1 0 1
+     *  columnName2 2 3
+     *
+     * @param filePath path to the schema file.
+     * @return a list of Column objects, each consists (String)columnName, (int)startIndex, and (int)endIndex as specified in the schema file.
+     * @throws IOException if an I/O error occurs while parsing the file.
+     * @throws SchemaValidationException if the content in the schema file does not follow valid format.
+     */
     public List<Column> parseSchemaFile(String filePath) throws IOException, SchemaValidationException {
         List<Column> cols = new ArrayList<>();
         List<String> names = new ArrayList<>();
@@ -83,6 +102,13 @@ public class Generator {
         return cols;
     }
 
+    /**
+     * Generates a Record class in Java, with each Column being a member variable of the Record class.
+     *
+     * @param cols a list of Column objects.
+     * @param dstPath path to the Java file where the Record class will be written to.
+     * @throws IOException if an I/O error occurs while writing the Record class to file.
+     */
     public void writeRecordClass(List<Column> cols, String dstPath) throws IOException {
         Velocity.init();
 
@@ -101,6 +127,14 @@ public class Generator {
         writeToJavaFile(writer.toString(), dstPath);
     }
 
+    /**
+     * Generates a FixedLengthParser class in Java, which will be used to parse each line of a txt file according to the Column objects passed in
+     * that return the corresponding Record object(s).
+     *
+     * @param cols a list of Column objects.
+     * @param dstPath path to the Java file where the FixedLengthParser class will be written to.
+     * @throws IOException if an I/O error occurs while writing the FixedLengthParser class to file.
+     */
     public void writeFLPClass(List<Column> cols, String dstPath) throws IOException {
         Velocity.init();
 
@@ -121,6 +155,15 @@ public class Generator {
         writeToJavaFile(writer.toString(), dstPath);
     }
 
+
+    /**
+     * A wrapper function that calls parseSchemaFile, writeRecordClass, and writeFLPClass,
+     * which results in generating the corresponding Record.java and FixedLengthParser.java according to the schema file passed in.
+     *
+     * @param filePath path to the schema file.
+     * @throws IOException if an I/O error occurs while parsing the schema file or writing the Record and FixedLengthParser classes to files.
+     * @throws SchemaValidationException if the content in the schema file does not follow valid format.
+     */
     public void generateRecordAndFLP(String filePath) throws IOException, SchemaValidationException {
         List<Column> cols = parseSchemaFile(filePath);
 

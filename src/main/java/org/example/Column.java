@@ -5,12 +5,18 @@ public class Column {
     private int startIndex;
     private int endIndex;
 
+    /**
+     * Constructor
+     */
     public Column(String columnName, int startIndex, int endIndex) {
         this.columnName = columnName;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
     }
 
+    /**
+     * Getters and Setters
+     */
     public String getColumnName() {
         return columnName;
     }
@@ -35,6 +41,9 @@ public class Column {
         this.endIndex = endIndex;
     }
 
+    /**
+     * toString()
+     */
     @Override
     public String toString() {
         return "Column{" +
