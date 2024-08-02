@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.exceptions.SchemaValidationException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -86,28 +87,6 @@ class GeneratorTest {
     }
 
     @Test
-    void parseSchemaFile_duplicate() {
-        // Test that the correct exception is thrown
-        Exception thrown = assertThrows(Exception.class, () -> {
-            testedGenerator.parseSchemaFile("src/test/resources/duplicate.schema");
-        });
-
-        // Verify the exception message
-        assertEquals("Duplicated columns in schema are not allowed.", thrown.getMessage());
-    }
-
-    @Test
-    void parseSchemaFile_keyword() {
-        // Test that the correct exception is thrown
-        Exception thrown = assertThrows(Exception.class, () -> {
-            testedGenerator.parseSchemaFile("src/test/resources/keyword.schema");
-        });
-
-        // Verify the exception message
-        assertEquals("Column should not be a reserved keyword.", thrown.getMessage());
-    }
-
-    @Test
     void parseSchemaFile_extraspace() {
         try {
             List<Column> actualCols = testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
@@ -128,26 +107,63 @@ class GeneratorTest {
         }
     }
 
-//    @Test
-//    void parseSchemaFile_extraspace() {
-//        // Test that the correct exception is thrown
-//        Exception thrown = assertThrows(Exception.class, () -> {
-//            testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
-//        });
-//
-//        // Verify the exception message
-//        assertEquals("Schema is not properly defined. Please separate columnName startIndex endIndex with a space.", thrown.getMessage());
-//    }
+    @Test
+    void parseSchemaFile_number() {
+        // Test that the correct exception is thrown
+        SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
+            testedGenerator.parseSchemaFile("src/test/resources/number.schema");
+        });
+
+        // Verify the exception message
+        assertEquals("Schema is not properly defined. Please ensure the format of 'columnStr startInt endInt' for 'remaining balance       1.0   5'.", thrown.getMessage());
+    }
+
+    @Test
+    void parseSchemaFile_contIndex() {
+        // Test that the correct exception is thrown
+        SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
+            testedGenerator.parseSchemaFile("src/test/resources/contIndex.schema");
+        });
+
+        // Verify the exception message
+        assertEquals("Invalid startIndex for 'today 4 8'. "
+                + "Note that current startIndex must be greater than or equal to previous endIndex.", thrown.getMessage());
+    }
 
     @Test
     void parseSchemaFile_index() {
         // Test that the correct exception is thrown
-        Exception thrown = assertThrows(Exception.class, () -> {
+        SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
             testedGenerator.parseSchemaFile("src/test/resources/index.schema");
         });
 
         // Verify the exception message
-        assertEquals("Invalid startIndex and/or endIndex.", thrown.getMessage());
+        assertEquals("Invalid startIndex and/or endIndex for 'age 2 1'. "
+                + "Note that endIndex must be greater than or equal to startIndex, and they should be positive integers.", thrown.getMessage());
+    }
+
+    @Test
+    void parseSchemaFile_keyword() {
+        // Test that the correct exception is thrown
+        SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
+            testedGenerator.parseSchemaFile("src/test/resources/keyword.schema");
+        });
+
+        // Verify the exception message
+        assertEquals("Invalid columnName as 'int'. "
+                + "Note that columnName should not be a reserved keyword in Java.", thrown.getMessage());
+    }
+
+    @Test
+    void parseSchemaFile_duplicate() {
+        // Test that the correct exception is thrown
+        SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
+            testedGenerator.parseSchemaFile("src/test/resources/duplicate.schema");
+        });
+
+        // Verify the exception message
+        assertEquals("Invalid columnName as 'student'. "
+                + "Note that there should not be duplicated columnName.", thrown.getMessage());
     }
 
     @Test

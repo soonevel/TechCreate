@@ -1,9 +1,6 @@
 package org.example;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -12,6 +9,8 @@ import org.apache.commons.text.CaseUtils;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
+
+import org.example.exceptions.SchemaValidationException;
 
 public class Generator {
     private static final Set<String> RESERVED_KEYWORDS = new HashSet<>(Arrays.asList(
@@ -22,11 +21,12 @@ public class Generator {
             "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this",
             "throw", "throws", "transient", "try", "void", "volatile", "while"));
 
-    public List<Column> parseSchemaFile(String filePath) throws Exception {
+    public List<Column> parseSchemaFile(String filePath) throws IOException, SchemaValidationException {
         List<Column> cols = new ArrayList<>();
         List<String> names = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
+            int end = -1;
 
             while ((line = reader.readLine()) != null) {
                 var preSchema = line.splitWithDelimiters("\\s+\\d+", -1);
@@ -39,15 +39,20 @@ public class Generator {
                 }
 
                 if (postSchema.size() != 3) {
-                    throw new Exception("Schema is not properly defined. Please separate columnName startIndex endIndex with a space.");
+                    throw new SchemaValidationException("Schema is not properly defined. "
+                            + "Please ensure the format of 'columnStr startInt endInt' for '" + line + "'.");
                 }
 
-                //I wonder if need to check when the previous end index is larger than current start index?
                 int start = Integer.parseInt(postSchema.get(1));
-                int end = Integer.parseInt(postSchema.get(2));
+                if (start < end) {
+                    throw new SchemaValidationException("Invalid startIndex for '" + line + "'. "
+                            + "Note that current startIndex must be greater than or equal to previous endIndex.");
+                }
+                end = Integer.parseInt(postSchema.get(2));
 
                 if (start > end || start < 0 || end < 0) {
-                    throw new Exception("Invalid startIndex and/or endIndex.");
+                    throw new SchemaValidationException("Invalid startIndex and/or endIndex for '" + line + "'. "
+                            + "Note that endIndex must be greater than or equal to startIndex, and they should be positive integers.");
                 }
 
                 String name = CaseUtils.toCamelCase(postSchema.get(0), false, ' ');
@@ -59,11 +64,13 @@ public class Generator {
                     name = "unknown";
                 }
                 if (RESERVED_KEYWORDS.contains(name)) {
-                    throw new Exception("Column should not be a reserved keyword.");
+                    throw new SchemaValidationException("Invalid columnName as '" + name + "'. "
+                            + "Note that columnName should not be a reserved keyword in Java.");
                 }
 
                 if (names.contains(name)) {
-                    throw new Exception("Duplicated columns in schema are not allowed.");
+                    throw new SchemaValidationException("Invalid columnName as '" + name + "'. "
+                            + "Note that there should not be duplicated columnName.");
                 }
                 names.add(name);
 
@@ -114,7 +121,7 @@ public class Generator {
         writeToJavaFile(writer.toString(), dstPath);
     }
 
-    public void generateRecordAndFLP(String filePath) throws Exception {
+    public void generateRecordAndFLP(String filePath) throws IOException, SchemaValidationException {
         List<Column> cols = parseSchemaFile(filePath);
 
         writeRecordClass(cols, "src/main/java/org/example/Record.java");
