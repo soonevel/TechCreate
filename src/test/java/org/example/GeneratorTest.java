@@ -128,14 +128,25 @@ class GeneratorTest {
     }
 
     @Test
-    void parseSchemaFile_extraspace() {
+    void parseSchemaFile_extraspace1() {
         // Test that the correct exception is thrown
         SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
-            testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
+            testedGenerator.parseSchemaFile("src/test/resources/extraspace1.schema");
         });
 
         // Verify the exception message
-        assertEquals(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(1, "remaining balance  1  20"), thrown.getMessage());
+        assertEquals(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(1, "remaining balance 1  20"), thrown.getMessage());
+    }
+
+    @Test
+    void parseSchemaFile_extraspace2() {
+        // Test that the correct exception is thrown
+        SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
+            testedGenerator.parseSchemaFile("src/test/resources/extraspace2.schema");
+        });
+
+        // Verify the exception message
+        assertEquals(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(1, "remaining balance    1 20"), thrown.getMessage());
     }
 
     @Test

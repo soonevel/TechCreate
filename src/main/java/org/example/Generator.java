@@ -4,6 +4,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.text.CaseUtils;
 import org.apache.velocity.Template;
@@ -46,11 +48,21 @@ public class Generator {
         List<String> names = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
+
             int end = -1;
             int l = 0;
 
+            String regex = "^.*(?<!\\s) \\d+ \\d+$";
+            Pattern pattern = Pattern.compile(regex);
+
             while ((line = reader.readLine()) != null) {
                 l++;
+
+                Matcher matcher = pattern.matcher(line);
+                if (!matcher.matches()) {
+                    throw new SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line));
+                }
+
                 var preSchema = line.splitWithDelimiters(" \\d+", -1);
                 List<String> postSchema = new ArrayList<>();
                 for (String s : preSchema) {
