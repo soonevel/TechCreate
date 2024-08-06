@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.exceptions.SchemaValidationError;
 import org.example.exceptions.SchemaValidationException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -134,7 +135,7 @@ class GeneratorTest {
         });
 
         // Verify the exception message
-        assertEquals("Schema is not properly defined. Please ensure the format of 'columnStr startInt endInt' for 'remaining balance       1.0   5'.", thrown.getMessage());
+        assertEquals(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(1, "remaining balance       1.0   5"), thrown.getMessage());
     }
 
     @Test
@@ -145,8 +146,7 @@ class GeneratorTest {
         });
 
         // Verify the exception message
-        assertEquals("Invalid startIndex for 'today 4 8'. "
-                + "Note that current startIndex must be greater than or equal to previous endIndex.", thrown.getMessage());
+        assertEquals(SchemaValidationError.INVALID_START_INDEX.getMessage(2, "today 4 8"), thrown.getMessage());
     }
 
     @Test
@@ -157,8 +157,7 @@ class GeneratorTest {
         });
 
         // Verify the exception message
-        assertEquals("Invalid startIndex and/or endIndex for 'age 2 1'. "
-                + "Note that endIndex must be greater than or equal to startIndex, and they should be positive integers.", thrown.getMessage());
+        assertEquals(SchemaValidationError.INVALID_INDEX.getMessage(1, "age 2 1"), thrown.getMessage());
     }
 
     @Test
@@ -169,8 +168,7 @@ class GeneratorTest {
         });
 
         // Verify the exception message
-        assertEquals("Invalid columnName as 'int'. "
-                + "Note that columnName should not be a reserved keyword in Java.", thrown.getMessage());
+        assertEquals(SchemaValidationError.INVALID_COLUMN_NAME.getMessage("int", 1, "int 1 2"), thrown.getMessage());
     }
 
     @Test
@@ -181,8 +179,7 @@ class GeneratorTest {
         });
 
         // Verify the exception message
-        assertEquals("Invalid columnName as 'student'. "
-                + "Note that there should not be duplicated columnName.", thrown.getMessage());
+        assertEquals(SchemaValidationError.DUPLICATE_COLUMN_NAME.getMessage("student", 2, "student 21 40"), thrown.getMessage());
     }
 
     @Test

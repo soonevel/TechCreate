@@ -12,6 +12,9 @@ public class SchemaValidationException extends Exception {
         super(message);
     }
 
+    /**
+     * Constructor
+     */
     public SchemaValidationException(String message, Throwable cause) {
         super(message, cause);
     }

@@ -10,6 +10,7 @@ import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 
+import org.example.exceptions.SchemaValidationError;
 import org.example.exceptions.SchemaValidationException;
 
 public class Generator {
@@ -46,8 +47,10 @@ public class Generator {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             int end = -1;
+            int l = 0;
 
             while ((line = reader.readLine()) != null) {
+                l++;
                 var preSchema = line.splitWithDelimiters("\\s+\\d+", -1);
                 List<String> postSchema = new ArrayList<>();
                 for (String s : preSchema) {
@@ -58,20 +61,17 @@ public class Generator {
                 }
 
                 if (postSchema.size() != 3) {
-                    throw new SchemaValidationException("Schema is not properly defined. "
-                            + "Please ensure the format of 'columnStr startInt endInt' for '" + line + "'.");
+                    throw new SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line));
                 }
 
                 int start = Integer.parseInt(postSchema.get(1));
                 if (start < end) {
-                    throw new SchemaValidationException("Invalid startIndex for '" + line + "'. "
-                            + "Note that current startIndex must be greater than or equal to previous endIndex.");
+                    throw new SchemaValidationException(SchemaValidationError.INVALID_START_INDEX.getMessage(l, line));
                 }
                 end = Integer.parseInt(postSchema.get(2));
 
                 if (start > end || start < 0 || end < 0) {
-                    throw new SchemaValidationException("Invalid startIndex and/or endIndex for '" + line + "'. "
-                            + "Note that endIndex must be greater than or equal to startIndex, and they should be positive integers.");
+                    throw new SchemaValidationException(SchemaValidationError.INVALID_INDEX.getMessage(l, line));
                 }
 
                 String name = CaseUtils.toCamelCase(postSchema.get(0), false, ' ');
@@ -85,13 +85,11 @@ public class Generator {
                             + "Please provide a better columnName instead.");
                 }
                 if (RESERVED_KEYWORDS.contains(name)) {
-                    throw new SchemaValidationException("Invalid columnName as '" + name + "'. "
-                            + "Note that columnName should not be a reserved keyword in Java.");
+                    throw new SchemaValidationException(SchemaValidationError.INVALID_COLUMN_NAME.getMessage(name, l, line));
                 }
 
                 if (names.contains(name)) {
-                    throw new SchemaValidationException("Invalid columnName as '" + name + "'. "
-                            + "Note that there should not be duplicated columnName.");
+                    throw new SchemaValidationException(SchemaValidationError.DUPLICATE_COLUMN_NAME.getMessage(name, l, line));
                 }
                 names.add(name);
 
