@@ -48,52 +48,35 @@ public class Generator {
         List<String> names = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
-
             int end = -1;
             int l = 0;
-
-            String regex = "^.*(?<!\\s) \\d+ \\d+$";
-            Pattern pattern = Pattern.compile(regex);
 
             while ((line = reader.readLine()) != null) {
                 l++;
 
-                Matcher matcher = pattern.matcher(line);
-                if (!matcher.matches()) {
+                List<String> schema = splitLine(line);
+                if (schema.size() != 3) {
                     throw new SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line));
                 }
 
-                var preSchema = line.splitWithDelimiters(" \\d+", -1);
-                List<String> postSchema = new ArrayList<>();
-                for (String s : preSchema) {
-                    if (s.isEmpty()) {
-                        continue;
-                    }
-                    postSchema.add(s.trim());
-                }
-
-                if (postSchema.size() != 3) {
-                    throw new SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line));
-                }
-
-                int start = Integer.parseInt(postSchema.get(1));
+                int start = Integer.parseInt(schema.get(1));
                 if (start < end) {
                     throw new SchemaValidationException(SchemaValidationError.INVALID_START_INDEX.getMessage(l, line));
                 }
-                end = Integer.parseInt(postSchema.get(2));
+                end = Integer.parseInt(schema.get(2));
 
                 if (start > end || start < 0 || end < 0) {
                     throw new SchemaValidationException(SchemaValidationError.INVALID_INDEX.getMessage(l, line));
                 }
 
-                String name = CaseUtils.toCamelCase(postSchema.get(0), false, ' ');
+                String name = CaseUtils.toCamelCase(schema.get(0), false, ' ');
                 //remove any special characters
                 name = name.replaceAll("[^a-zA-Z0-9_$]", "");
                 //remove any leading numbers
                 name = name.replaceAll("^\\d+", "");
                 if (name.isBlank()) {
                     name = "unknown";
-                    System.out.println("WARNING: '" + postSchema.get(0) + "' is not a valid variable name in Java so it is renamed to 'unknown'. "
+                    System.out.println("WARNING: '" + schema.get(0) + "' is not a valid variable name in Java so it is renamed to 'unknown'. "
                             + "Please provide a better columnName instead.");
                 }
                 if (RESERVED_KEYWORDS.contains(name)) {
@@ -167,7 +150,6 @@ public class Generator {
         writeToJavaFile(writer.toString(), dstPath);
     }
 
-
     /**
      * A wrapper function that calls parseSchemaFile, writeRecordClass, and writeFLPClass,
      * which results in generating the corresponding Record.java and FixedLengthParser.java according to the schema file passed in.
@@ -181,6 +163,30 @@ public class Generator {
 
         writeRecordClass(cols, "src/main/java/org/example/Record.java");
         writeFLPClass(cols, "src/main/java/org/example/FixedLengthParser.java");
+    }
+
+    /**
+     * Splits a String into three to-be-sanitized tokens, where token 1 = columnName, token 2 = startIndex, token 3 = endIndex.
+     * @param line a line in the schema file.
+     * @return a list of String after splitting accordingly.
+     */
+    public List<String> splitLine(String line) {
+        List<String> postSchema = new ArrayList<>();
+
+        Pattern pattern = Pattern.compile("^.*(?<!\\s) \\d+ \\d+$");
+        Matcher matcher = pattern.matcher(line);
+        if (!matcher.matches()) {
+            return postSchema;
+        }
+
+        var preSchema = line.splitWithDelimiters(" \\d+", -1);
+        for (String s : preSchema) {
+            if (s.isEmpty()) {
+                continue;
+            }
+            postSchema.add(s.trim());
+        }
+        return postSchema;
     }
 
     private void writeToJavaFile(String classString, String filePath) throws IOException {

@@ -35,6 +35,76 @@ class GeneratorTest {
     }
 
     @Test
+    void splitLine_valid1() {
+        try {
+            List<String> actualCol = testedGenerator.splitLine("firstName 1 10");
+            List<String> expectedCol = new ArrayList<>();
+            expectedCol.add("firstName");
+            expectedCol.add("1");
+            expectedCol.add("10");
+
+            assertEquals(expectedCol, actualCol, "splitLine_valid1 should return the expected list.");
+            assertEquals(3, actualCol.size(), "There should be 3 strings.");
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void splitLine_valid2() {
+        try {
+            List<String> actualCol = testedGenerator.splitLine("first name 1 10");
+            List<String> expectedCol = new ArrayList<>();
+            expectedCol.add("first name");
+            expectedCol.add("1");
+            expectedCol.add("10");
+
+            assertEquals(expectedCol, actualCol, "splitLine_valid2 should return the expected list.");
+            assertEquals(3, actualCol.size(), "There should be 3 strings.");
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void splitLine_invalid1() {
+        try {
+            List<String> actualCol = testedGenerator.splitLine("firstName 123 1 10");
+
+            assertNotEquals(3, actualCol.size(), "splitLine_invalid1 should not return a list with size of 3.");
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void splitLine_invalid2() {
+        try {
+            List<String> actualCol = testedGenerator.splitLine("firstName  1 10");
+
+            assertTrue(actualCol.isEmpty(), "splitLine_invalid2 should return an empty list.");
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void splitLine_invalid3() {
+        try {
+            List<String> actualCol = testedGenerator.splitLine("firstName 1  10");
+
+            assertTrue(actualCol.isEmpty(), "splitLine_invalid3 should return an empty list.");
+        } catch (Exception e) {
+            // Fail the test if an exception is thrown
+            fail("Exception should not have been thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
     void parseSchemaFile_valid1() {
         try {
             List<Column> actualCols = testedGenerator.parseSchemaFile("src/test/resources/valid1.schema");
