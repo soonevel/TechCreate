@@ -51,10 +51,10 @@ public class Generator {
 
             while ((line = reader.readLine()) != null) {
                 l++;
-                var preSchema = line.splitWithDelimiters("\\s+\\d+", -1);
+                var preSchema = line.splitWithDelimiters(" \\d+", -1);
                 List<String> postSchema = new ArrayList<>();
                 for (String s : preSchema) {
-                    if (s.isBlank()) {
+                    if (s.isEmpty()) {
                         continue;
                     }
                     postSchema.add(s.trim());

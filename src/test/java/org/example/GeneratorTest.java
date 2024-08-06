@@ -107,9 +107,9 @@ class GeneratorTest {
     }
 
     @Test
-    void parseSchemaFile_extraspace() {
+    void parseSchemaFile_spaceInName() {
         try {
-            List<Column> actualCols = testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
+            List<Column> actualCols = testedGenerator.parseSchemaFile("src/test/resources/spaceInName.schema");
 
             List<Column> expectedCols = new ArrayList<>();
             Column col1 = new Column("remainingBalance", 1, 5);
@@ -119,12 +119,23 @@ class GeneratorTest {
             expectedCols.add(col2);
             expectedCols.add(col3);
 
-            assertEquals(expectedCols.toString(), actualCols.toString(), "parseSchemaFile_extraspace should return the expected columns.");
+            assertEquals(expectedCols.toString(), actualCols.toString(), "parseSchemaFile_spaceInName should return the expected columns.");
             assertEquals(3, actualCols.size(), "There should be 3 columns.");
         } catch (Exception e) {
             // Fail the test if an exception is thrown
             fail("Exception should not have been thrown: " + e.getMessage());
         }
+    }
+
+    @Test
+    void parseSchemaFile_extraspace() {
+        // Test that the correct exception is thrown
+        SchemaValidationException thrown = assertThrows(SchemaValidationException.class, () -> {
+            testedGenerator.parseSchemaFile("src/test/resources/extraspace.schema");
+        });
+
+        // Verify the exception message
+        assertEquals(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(1, "remaining balance  1  20"), thrown.getMessage());
     }
 
     @Test
@@ -135,7 +146,7 @@ class GeneratorTest {
         });
 
         // Verify the exception message
-        assertEquals(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(1, "remaining balance       1.0   5"), thrown.getMessage());
+        assertEquals(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(1, "remaining balance 1.0 5"), thrown.getMessage());
     }
 
     @Test
