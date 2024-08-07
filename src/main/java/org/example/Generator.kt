@@ -1,29 +1,13 @@
-package org.example;
+package org.example
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.apache.commons.text.CaseUtils
+import org.apache.velocity.VelocityContext
+import org.apache.velocity.app.Velocity
+import org.example.exceptions.SchemaValidationError
+import org.example.exceptions.SchemaValidationException
+import java.io.*
 
-import org.apache.commons.text.CaseUtils;
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.Velocity;
-
-import org.example.exceptions.SchemaValidationError;
-import org.example.exceptions.SchemaValidationException;
-
-public class Generator {
-    private static final Set<String> RESERVED_KEYWORDS = new HashSet<>(Arrays.asList(
-            "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
-            "const", "continue", "default", "do", "double", "else", "enum", "extends", "final",
-            "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int",
-            "interface", "long", "native", "new", "null", "package", "private", "protected", "public",
-            "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this",
-            "throw", "throws", "transient", "try", "void", "volatile", "while"));
-
+class Generator {
     /**
      * Parses a schema file and convert it into Column object(s).
      * Each line in the schema file should have the format of "<columnName> <startIndex> <endIndex>" where:
@@ -32,137 +16,146 @@ public class Generator {
      * - followed by startIndex which is a positive integer
      * - followed by a space
      * - followed by endIndex which is a positive integer > startIndex
-     * The columnName should be a valid variable name in Java and there should not be duplicated columnName in the schema file.
+     * The columnName should be a valid variable name in Kotlin and there should not be duplicated columnName in the schema file.
      *
      * An example of a valid schema file:
-     *  columnName1 0 1
-     *  columnName2 2 3
+     * columnName1 0 1
+     * columnName2 2 3
      *
      * @param filePath path to the schema file.
      * @return a list of Column objects, each consists (String)columnName, (int)startIndex, and (int)endIndex as specified in the schema file.
      * @throws IOException if an I/O error occurs while parsing the file.
      * @throws SchemaValidationException if the content in the schema file does not follow valid format.
      */
-    public List<Column> parseSchemaFile(String filePath) throws IOException, SchemaValidationException {
-        List<Column> cols = new ArrayList<>();
-        List<String> names = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            int end = -1;
-            int l = 0;
+    @Throws(IOException::class, SchemaValidationException::class)
+    fun parseSchemaFile(filePath: String): List<Column> {
+        val cols = mutableListOf<Column>()
 
-            while ((line = reader.readLine()) != null) {
-                l++;
+        File(filePath).bufferedReader().useLines { lines ->
+            val names = mutableSetOf<String>()
 
-                List<String> schema = splitLine(line);
-                if (schema.size() != 3) {
-                    throw new SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line));
+            var end = -1
+            var l = 0
+            lines.forEach { line ->
+                l++
+
+                val schema = splitLine(line)
+                if (schema.size != 3) {
+                    throw SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line))
                 }
 
-                int start = Integer.parseInt(schema.get(1));
-                if (start < end) {
-                    throw new SchemaValidationException(SchemaValidationError.INVALID_START_INDEX.getMessage(l, line));
+                val start: Int
+                try {
+                    start = schema[1].trim().toInt()
+                    if (start < end) {
+                        throw SchemaValidationException(SchemaValidationError.INVALID_START_INDEX.getMessage(l, line))
+                    }
+                    end = schema[2].trim().toInt()
+                } catch (e: NumberFormatException) {
+                    throw SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line))
                 }
-                end = Integer.parseInt(schema.get(2));
 
                 if (start > end || start < 0 || end < 0) {
-                    throw new SchemaValidationException(SchemaValidationError.INVALID_INDEX.getMessage(l, line));
+                    throw SchemaValidationException(SchemaValidationError.INVALID_INDEX.getMessage(l, line))
                 }
 
-                String name = CaseUtils.toCamelCase(schema.get(0), false, ' ');
+                var name = CaseUtils.toCamelCase(schema[0].trim(), false, ' ')
                 //remove any special characters
-                name = name.replaceAll("[^a-zA-Z0-9_$]", "");
+                name = name.replace("[^a-zA-Z0-9_]".toRegex(), "")
                 //remove any leading numbers
-                name = name.replaceAll("^\\d+", "");
+                name = name.replace("^\\d+".toRegex(), "")
                 if (name.isBlank()) {
-                    name = "unknown";
-                    System.out.println("WARNING: '" + schema.get(0) + "' is not a valid variable name in Java so it is renamed to 'unknown'. "
-                            + "Please provide a better columnName instead.");
+                    name = "unknown"
+                    println(
+                        "WARNING: '" + schema[0].trim() + "' is not a valid variable name in Kotlin so it is renamed to 'unknown'. "
+                                + "Please provide a better columnName instead."
+                    )
                 }
                 if (RESERVED_KEYWORDS.contains(name)) {
-                    throw new SchemaValidationException(SchemaValidationError.INVALID_COLUMN_NAME.getMessage(name, l, line));
+                    throw SchemaValidationException(SchemaValidationError.INVALID_COLUMN_NAME.getMessage(name, l, line))
                 }
 
                 if (names.contains(name)) {
-                    throw new SchemaValidationException(SchemaValidationError.DUPLICATE_COLUMN_NAME.getMessage(name, l, line));
+                    throw SchemaValidationException(SchemaValidationError.DUPLICATE_COLUMN_NAME.getMessage(name, l, line))
                 }
-                names.add(name);
+                names.add(name)
 
-                Column col = new Column(name, start, end);
-                cols.add(col);
-
-                System.out.println(col);
+                val col = Column(name, start, end)
+                cols.add(col)
+                println(col)
             }
         }
-        return cols;
+        return cols
     }
 
     /**
-     * Generates a Record class in Java, with each Column being a member variable of the Record class.
+     * Generates a Record class in Kotlin, with each Column being a member variable of the Record class.
      *
      * @param cols a list of Column objects.
-     * @param dstPath path to the Java file where the Record class will be written to.
+     * @param dstPath path to the Kotlin file where the Record class will be written to.
      * @throws IOException if an I/O error occurs while writing the Record class to file.
      */
-    public void writeRecordClass(List<Column> cols, String dstPath) throws IOException {
-        Velocity.init();
+    @Throws(IOException::class)
+    fun writeRecordClass(cols: List<Column>, dstPath: String) {
+        Velocity.init()
 
         // Create a context and add data
-        VelocityContext context = new VelocityContext();
-        context.put("cols", cols);
+        val context = VelocityContext()
+        context.put("cols", cols)
 
         // Load the template
-        Template template = Velocity.getTemplate("src/main/resources/record.vm");
+        val template = Velocity.getTemplate("src/main/resources/record.vm")
 
         // Merge the template with the context
-        StringWriter writer = new StringWriter();
-        template.merge(context, writer);
+        val writer = StringWriter()
+        template.merge(context, writer)
 
         // Output the result
-        writeToJavaFile(writer.toString(), dstPath);
+        writeToKotlinFile(writer.toString(), dstPath)
     }
 
     /**
-     * Generates a FixedLengthParser class in Java, which will be used to parse each line of a txt file according to the Column objects passed in
+     * Generates a FixedLengthParser class in Kotlin, which will be used to parse each line of a txt file according to the Column objects passed in
      * that return the corresponding Record object(s).
      *
      * @param cols a list of Column objects.
-     * @param dstPath path to the Java file where the FixedLengthParser class will be written to.
+     * @param dstPath path to the Kotlin file where the FixedLengthParser class will be written to.
      * @throws IOException if an I/O error occurs while writing the FixedLengthParser class to file.
      */
-    public void writeFLPClass(List<Column> cols, String dstPath) throws IOException {
-        Velocity.init();
+    @Throws(IOException::class)
+    fun writeFLPClass(cols: List<Column>, dstPath: String) {
+        Velocity.init()
 
         // Create a context and add data
-        VelocityContext context = new VelocityContext();
-        context.put("cols", cols);
-        int lineEnd = cols.getLast().getEndIndex();
-        context.put("lineEnd", lineEnd);
+        val context = VelocityContext()
+        context.put("cols", cols)
+        context.put("lineEnd", cols.last().endIndex)
 
         // Load the template
-        Template template = Velocity.getTemplate("src/main/resources/fixedLengthParser.vm");
+        val template = Velocity.getTemplate("src/main/resources/fixedLengthParser.vm")
 
         // Merge the template with the context
-        StringWriter writer = new StringWriter();
-        template.merge(context, writer);
+        val writer = StringWriter()
+        template.merge(context, writer)
 
         // Output the result
-        writeToJavaFile(writer.toString(), dstPath);
+        writeToKotlinFile(writer.toString(), dstPath)
     }
 
     /**
      * A wrapper function that calls parseSchemaFile, writeRecordClass, and writeFLPClass,
-     * which results in generating the corresponding Record.java and FixedLengthParser.java according to the schema file passed in.
+     * which results in generating the corresponding Record.kt and FixedLengthParser.kt according to the schema file passed in.
      *
      * @param filePath path to the schema file.
      * @throws IOException if an I/O error occurs while parsing the schema file or writing the Record and FixedLengthParser classes to files.
      * @throws SchemaValidationException if the content in the schema file does not follow valid format.
      */
-    public void generateRecordAndFLP(String filePath) throws IOException, SchemaValidationException {
-        List<Column> cols = parseSchemaFile(filePath);
+    @Throws(IOException::class, SchemaValidationException::class)
+    fun generateRecordAndFLP(filePath: String) {
+        val cols = parseSchemaFile(filePath)
 
-        writeRecordClass(cols, "src/main/java/org/example/Record.java");
-        writeFLPClass(cols, "src/main/java/org/example/FixedLengthParser.java");
+        writeRecordClass(cols, "src/main/java/org/example/Record.kt")
+        writeFLPClass(cols, "src/main/java/org/example/FixedLengthParser.kt")
     }
 
     /**
@@ -170,36 +163,35 @@ public class Generator {
      * @param line a line in the schema file.
      * @return a list of String after splitting accordingly.
      */
-    public List<String> splitLine(String line) {
-        List<String> postSchema = new ArrayList<>();
+    fun splitLine(line: String): List<String> {
+        val regex = "(?<!\\s) (?=\\d+)".toRegex()
+        return line.split(regex)
+    }
 
-        Pattern pattern = Pattern.compile("^.*(?<!\\s) \\d+ \\d+$");
-        Matcher matcher = pattern.matcher(line);
-        if (!matcher.matches()) {
-            return postSchema;
-        }
+    @Throws(IOException::class)
+    private fun writeToKotlinFile(classString: String, filePath: String) {
+        File(filePath).writeText(classString)
+    }
 
-        var preSchema = line.splitWithDelimiters(" \\d+", -1);
-        for (String s : preSchema) {
-            if (s.isEmpty()) {
-                continue;
+    companion object {
+        private val RESERVED_KEYWORDS: Set<String> = setOf(
+            "as", "as?", "abstract", "annotation", "break", "class", "companion", "const",
+            "continue", "data", "delegate", "do", "dynamic", "else", "enum", "expect",
+            "external", "false", "final", "finally", "for", "fun", "if", "import", "in",
+            "inline", "interface", "is", "lateinit", "mutable", "noinline", "null",
+            "object", "open", "operator", "out", "override", "package", "private",
+            "protected", "public", "reified", "return", "sealed", "super", "suspend",
+            "tailrec", "throw", "true", "try", "typealias", "val", "var", "when", "while"
+        )
+
+        @JvmStatic
+        fun main(args: Array<String>) {
+            val generator = Generator()
+            try {
+                generator.generateRecordAndFLP("src/main/resources/FT.schema")
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            postSchema.add(s.trim());
-        }
-        return postSchema;
-    }
-
-    private void writeToJavaFile(String classString, String filePath) throws IOException {
-        var path = Paths.get(filePath);
-        Files.write(path, classString.getBytes());
-    }
-
-    public static void main(String[] args) {
-        Generator generator = new Generator();
-        try {
-            generator.generateRecordAndFLP("src/main/resources/FT.schema");
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 }
