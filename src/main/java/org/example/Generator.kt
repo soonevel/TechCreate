@@ -46,11 +46,11 @@ class Generator {
 
                 val start: Int
                 try {
-                    start = schema[1].trim().toInt()
+                    start = schema[1].toInt()
                     if (start < end) {
                         throw SchemaValidationException(SchemaValidationError.INVALID_START_INDEX.getMessage(l, line))
                     }
-                    end = schema[2].trim().toInt()
+                    end = schema[2].toInt()
                 } catch (e: NumberFormatException) {
                     throw SchemaValidationException(SchemaValidationError.INVALID_SCHEMA_FILE.getMessage(l, line))
                 }
