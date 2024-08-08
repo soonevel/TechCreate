@@ -1,18 +1,7 @@
-package org.example;
+package org.example
 
-public class Record {
-    private String balance;
-    private String date;
-
-    public Record (String balance, String date) {
-        this.balance = balance;
-        this.date = date;
+class Record(private var balance: String, private var date: String) {
+    override fun toString(): String {
+        return "Record(balance='$balance', date='$date')"
     }
-
-    @Override
-    public String toString() {
-        return "Record {balance='" + balance + "', date='" + date + "'}";
-    }
-
-    // Getters and Setters (if needed)
 }
